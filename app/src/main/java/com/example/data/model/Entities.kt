@@ -19,7 +19,8 @@ data class User(
     val assignedMentorId: String? = null,
     val assignedMentorName: String? = null,
     val assignedAdvisorId: String? = null,
-    val assignedAdvisorName: String? = null
+    val assignedAdvisorName: String? = null,
+    val studentDesignation: String? = null // e.g. "CR" (Class Representative), "LR" (Ladies Representative), or null
 )
 
 @Entity(tableName = "outpass_requests")

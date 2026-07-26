@@ -27,6 +27,9 @@ import com.example.ui.viewmodel.PortalViewModel
 import com.example.data.model.CollegeNotification
 import kotlinx.coroutines.delay
 
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampusConnectApp(
@@ -83,6 +86,8 @@ fun CampusConnectApp(
     val currentScreen = screenStack.last()
 
     var showProfileDialog by remember { mutableStateOf(false) }
+    var showNotifDialog by remember { mutableStateOf(false) }
+    val unreadNotifCount = allNotif.count { !it.isRead }
 
     fun navigateTo(screen: String) {
         if (screen == "DASHBOARD") {
@@ -126,6 +131,26 @@ fun CampusConnectApp(
                         }
                     },
                     actions = {
+                        IconButton(
+                            onClick = { showNotifDialog = true },
+                            modifier = Modifier.testTag("notification_button")
+                        ) {
+                            BadgedBox(
+                                badge = {
+                                    if (unreadNotifCount > 0) {
+                                        Badge {
+                                            Text(text = unreadNotifCount.toString(), fontSize = 10.sp)
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                         IconButton(
                             onClick = {
                                 viewModel.logout()
@@ -189,6 +214,9 @@ fun CampusConnectApp(
                             viewModel = viewModel
                         )
                         "FIREBASE_HUB" -> FirebaseHubScreen(
+                            viewModel = viewModel
+                        )
+                        "TIMETABLE" -> TimeTableScreen(
                             viewModel = viewModel
                         )
                     }
@@ -318,15 +346,34 @@ fun CampusConnectApp(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
-                        if (!isEditing) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (!isEditing) {
+                                IconButton(
+                                    onClick = { isEditing = true },
+                                    modifier = Modifier.testTag("toggle_profile_edit_icon")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Profile",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                             IconButton(
-                                onClick = { isEditing = true },
-                                modifier = Modifier.testTag("toggle_profile_edit_icon")
+                                onClick = {
+                                    showProfileDialog = false
+                                    viewModel.logout()
+                                    Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.testTag("profile_header_logout_icon")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Profile",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = "Logout",
+                                    tint = Color(0xFFC62828)
                                 )
                             }
                         }
@@ -485,6 +532,25 @@ fun CampusConnectApp(
                                 Text("Save")
                             }
                         } else {
+                            OutlinedButton(
+                                onClick = {
+                                    showProfileDialog = false
+                                    viewModel.logout()
+                                    Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC62828).copy(alpha = 0.4f)),
+                                modifier = Modifier.testTag("profile_logout_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = "Logout",
+                                    tint = Color(0xFFC62828),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Logout", color = Color(0xFFC62828), fontWeight = FontWeight.Bold)
+                            }
                             Button(
                                 onClick = { showProfileDialog = false },
                                 modifier = Modifier.testTag("finished_profile_button")
@@ -492,6 +558,90 @@ fun CampusConnectApp(
                                 Text("Finished")
                             }
                         }
+                    }
+                }
+            )
+        }
+
+        // Modal Notifications Dialog
+        if (showNotifDialog) {
+            AlertDialog(
+                onDismissRequest = { showNotifDialog = false },
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Announcements", fontWeight = FontWeight.Bold)
+                        TextButton(
+                            onClick = {
+                                viewModel.markAllNotificationsRead()
+                            }
+                        ) {
+                            Text("Mark Read")
+                        }
+                    }
+                },
+                text = {
+                    if (allNotif.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No notifications yet.", color = Color.Gray)
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(allNotif) { notif ->
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (notif.isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = notif.title,
+                                                fontWeight = FontWeight.Bold,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            SuggestionChip(
+                                                onClick = { },
+                                                label = { Text(notif.category, fontSize = 8.sp) },
+                                                modifier = Modifier.height(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = notif.content,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { showNotifDialog = false }) {
+                        Text("Dismiss")
                     }
                 }
             )
@@ -511,6 +661,7 @@ fun getScreenTitle(screen: String, role: String? = null): String {
         "ADMIN" -> if (role == "MENTOR" || role == "CLASS_ADVISOR") "STUDENT REQUESTS" else "STAFF CONSOLE"
         "TPC" -> "TRAINING & PLACEMENT (TPC)"
         "FIREBASE_HUB" -> "FIREBASE CLOUD SYNC HUB"
+        "TIMETABLE" -> "TIME TABLE & ATTENDANCE"
         else -> "PORTAL"
     }
 }

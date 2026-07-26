@@ -128,6 +128,11 @@ class AppRepository(private val appDao: AppDao) {
         return request
     }
 
+    suspend fun updateOutpassRequest(request: OutpassRequest) {
+        appDao.updateOutpassRequest(request)
+        syncToFirestore("outpasses", "${request.studentId}_${request.timestamp}", request)
+    }
+
     suspend fun approveOutpass(request: OutpassRequest, approverRole: String) {
         val nextStatus = when (approverRole) {
             "CLASS_ADVISOR", "MENTOR" -> "PENDING_HOD"

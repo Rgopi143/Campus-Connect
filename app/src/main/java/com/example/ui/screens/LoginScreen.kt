@@ -269,6 +269,7 @@ fun LoginScreen(
 
                             val deptOptions = listOf(
                                 "Computer Science",
+                                "Computer Science (Emerging Technologies)",
                                 "Electronics & Communication",
                                 "Electrical & Electronics",
                                 "Civil Engineering",
@@ -322,51 +323,6 @@ fun LoginScreen(
                                                 showDeptDropdown = false
                                             }
                                         )
-                                    }
-                                }
-                            }
-
-                            val matchingHod = allUsers.find { it.role == "HOD" && it.department.equals(regDept, ignoreCase = true) }
-                            matchingHod?.let { hod ->
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("associated_hod_card")
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Person,
-                                            contentDescription = "HOD Icon",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Column {
-                                            Text(
-                                                text = "Department HOD (Can Login & Assign)",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Text(
-                                                text = hod.name,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Text(
-                                                text = "Email: ${hod.email} • Dept: ${hod.department}",
-                                                fontSize = 10.sp,
-                                                color = Color.Gray
-                                            )
-                                        }
                                     }
                                 }
                             }
@@ -532,6 +488,7 @@ fun LoginScreen(
 private fun getDeptFromRollNumber(roll: String): String? {
     val clean = roll.uppercase().trim()
     return when {
+        clean.contains("AIML") || clean.contains("AIDS") || clean.contains("CSM") || clean.contains("CSD") || clean.contains("CSO") || clean.contains("CSC") || clean.contains("ET") || clean.contains("EMERGING") -> "Computer Science (Emerging Technologies)"
         clean.contains("CSE") || clean.contains("CS") -> "Computer Science"
         clean.contains("ECE") || clean.contains("EC") -> "Electronics & Communication"
         clean.contains("EEE") || clean.contains("EE") -> "Electrical & Electronics"

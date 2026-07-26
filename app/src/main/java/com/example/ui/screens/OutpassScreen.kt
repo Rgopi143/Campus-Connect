@@ -353,13 +353,14 @@ fun OutpassScreen(
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.primary
                                     )
+                                    val effStat = getEffectiveOutpassStatus(outpass)
                                     Text(
-                                        text = formatStatus(outpass.status),
+                                        text = formatOutpassStatus(effStat),
                                         fontWeight = FontWeight.SemiBold,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = when (outpass.status) {
+                                        color = when (effStat) {
                                             "APPROVED" -> Color(0xFF10B981)
-                                            "REJECTED" -> Color.Red
+                                            "REJECTED", "EXPIRED" -> Color.Red
                                             else -> MaterialTheme.colorScheme.secondary
                                         }
                                     )
@@ -404,6 +405,24 @@ fun OutpassScreen(
             onDismiss = { showSuccessBanner = false },
             modifier = Modifier.align(Alignment.TopCenter)
         )
+    }
+}
+
+fun getEffectiveOutpassStatus(outpass: OutpassRequest): String {
+    val twoHoursMs = 7200000L
+    val isExpired = outpass.status == "EXPIRED" || (outpass.status.startsWith("PENDING") && (System.currentTimeMillis() - outpass.timestamp) > twoHoursMs)
+    return if (isExpired) "EXPIRED" else outpass.status
+}
+
+fun formatOutpassStatus(status: String): String {
+    return when (status) {
+        "PENDING_MENTOR", "PENDING_ADVISOR" -> "Awaiting Mentor"
+        "PENDING_HOD" -> "Awaiting HOD"
+        "PENDING_SECURITY" -> "Awaiting Security"
+        "APPROVED" -> "Approved"
+        "REJECTED" -> "Rejected"
+        "EXPIRED" -> "Expired (2 Hours Limit)"
+        else -> status
     }
 }
 

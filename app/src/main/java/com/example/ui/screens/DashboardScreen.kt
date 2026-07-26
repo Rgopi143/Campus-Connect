@@ -61,9 +61,6 @@ fun DashboardScreen(
     val studentCanteenBookings by viewModel.studentCanteenBookings.collectAsState()
     val tpcStaffList by viewModel.tpcStaffList.collectAsState()
     val departments by viewModel.departments.collectAsState()
-    val unreadCount = allNotif.count { !it.isRead }
-
-    var showNotifDialog by remember { mutableStateOf(false) }
     var selectedDeptForDetail by remember { mutableStateOf<Department?>(null) }
     var showAddDeptDialog by remember { mutableStateOf(false) }
     var showStaffDialog by remember { mutableStateOf(false) }
@@ -151,32 +148,6 @@ fun DashboardScreen(
                         }
                         
 
-                    }
-
-                    // Notification bell with unread badge count
-                    Box(modifier = Modifier.clickable { showNotifDialog = true }) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "Notifications",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        if (unreadCount > 0) {
-                            Badge(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 2.dp, y = (-2).dp)
-                            ) {
-                                Text(text = unreadCount.toString(), fontSize = 10.sp)
-                            }
-                        }
                     }
                 }
             }
@@ -353,12 +324,24 @@ fun DashboardScreen(
                             onClick = { showHelpDialog = true }
                         )
                         QuickTile(
+                            title = "Time Table",
+                            subtitle = "Schedule, Attendance & Notices",
+                            icon = Icons.Default.Schedule,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("timetable_tile"),
+                            onClick = { onNavigate("TIMETABLE") }
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        QuickTile(
                             title = "Campus Events",
                             subtitle = "Seminars, fests & schedules",
                             icon = Icons.Default.Event,
                             color = MaterialTheme.colorScheme.tertiaryContainer,
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth(0.5f)
                                 .testTag("events_tile_student"),
                             onClick = { showEventsDialog = true }
                         )
@@ -537,90 +520,6 @@ fun DashboardScreen(
                 }
             }
         }
-    }
-
-    // Modal Notifications Dialog
-    if (showNotifDialog) {
-        AlertDialog(
-            onDismissRequest = { showNotifDialog = false },
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "Announcements", fontWeight = FontWeight.Bold)
-                    TextButton(
-                        onClick = {
-                            viewModel.markAllNotificationsRead()
-                        }
-                    ) {
-                        Text("Mark Read")
-                    }
-                }
-            },
-            text = {
-                if (allNotif.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No notifications yet.", color = Color.Gray)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.heightIn(max = 300.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(allNotif) { notif ->
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (notif.isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                    else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                                ),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = notif.title,
-                                            fontWeight = FontWeight.Bold,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        SuggestionChip(
-                                            onClick = { },
-                                            label = { Text(notif.category, fontSize = 8.sp) },
-                                            modifier = Modifier.height(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = notif.content,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(onClick = { showNotifDialog = false }) {
-                    Text("Dismiss")
-                }
-            }
-        )
     }
 
     if (selectedDeptForDetail != null) {
@@ -2408,6 +2307,9 @@ fun StudentOutpassHubCard(
                                 modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                val isExpired = req.status == "EXPIRED" || (req.status.startsWith("PENDING") && (System.currentTimeMillis() - req.timestamp) > 7200000L)
+                                val effectiveStatus = if (isExpired) "EXPIRED" else req.status
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2430,21 +2332,24 @@ fun StudentOutpassHubCard(
                                     }
 
                                     Badge(
-                                        containerColor = when (req.status) {
+                                        containerColor = when (effectiveStatus) {
                                             "APPROVED" -> Color(0xFF10B981)
                                             "EXITED" -> MaterialTheme.colorScheme.primary
+                                            "EXPIRED" -> Color(0xFFEF4444)
+                                            "REJECTED" -> Color.Red
                                             else -> MaterialTheme.colorScheme.tertiary
                                         },
-                                        modifier = Modifier.testTag("dashboard_outpass_status_badge_${req.status}")
+                                        modifier = Modifier.testTag("dashboard_outpass_status_badge_${effectiveStatus}")
                                     ) {
                                         Text(
-                                            text = when (req.status) {
+                                            text = when (effectiveStatus) {
                                                 "PENDING_MENTOR", "PENDING_ADVISOR" -> "Awaiting Mentor"
                                                 "PENDING_HOD" -> "Awaiting HOD"
                                                 "PENDING_SECURITY" -> "Awaiting Security"
                                                 "APPROVED" -> "Approved - Ready"
                                                 "EXITED" -> "Exited"
-                                                else -> req.status
+                                                "EXPIRED" -> "Expired (2 hrs limit)"
+                                                else -> effectiveStatus
                                             },
                                             color = Color.White,
                                             fontSize = 9.sp,
@@ -2454,7 +2359,7 @@ fun StudentOutpassHubCard(
                                     }
                                 }
 
-                                OutpassTimeline(status = req.status)
+                                OutpassTimeline(status = effectiveStatus)
 
                                 if (isDetailsExpanded) {
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -2626,23 +2531,45 @@ fun StudentOutpassHubCard(
 
 @Composable
 fun OutpassTimeline(status: String) {
-    val stepSubmitted = true
-    val stepMentor = status != "PENDING_MENTOR" && status != "PENDING_ADVISOR" && status != "PENDING" && status != "REJECTED"
-    val stepHod = stepMentor && status != "PENDING_HOD" && status != "REJECTED"
-    val stepSecurity = status == "APPROVED" || status == "EXITED"
+    if (status == "EXPIRED") {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFFFEBEE)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Default.TimerOff, contentDescription = null, tint = Color(0xFFC62828), modifier = Modifier.size(16.dp))
+                    Text("Request Expired (Exceeded 2 Hours Creation Limit)", color = Color(0xFFC62828), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    } else {
+        val stepSubmitted = true
+        val stepMentor = status != "PENDING_MENTOR" && status != "PENDING_ADVISOR" && status != "PENDING" && status != "REJECTED"
+        val stepHod = stepMentor && status != "PENDING_HOD" && status != "REJECTED"
+        val stepSecurity = status == "APPROVED" || status == "EXITED"
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TimelineStep(label = "Submitted", checked = stepSubmitted, current = false)
-        TimelineConnector(checked = stepMentor)
-        TimelineStep(label = "Mentor", checked = stepMentor, current = status == "PENDING_MENTOR" || status == "PENDING_ADVISOR")
-        TimelineConnector(checked = stepHod)
-        TimelineStep(label = "HOD", checked = stepHod, current = status == "PENDING_HOD")
-        TimelineConnector(checked = stepSecurity)
-        TimelineStep(label = "Security", checked = stepSecurity, current = status == "PENDING_SECURITY")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TimelineStep(label = "Submitted", checked = stepSubmitted, current = false)
+            TimelineConnector(checked = stepMentor)
+            TimelineStep(label = "Mentor", checked = stepMentor, current = status == "PENDING_MENTOR" || status == "PENDING_ADVISOR")
+            TimelineConnector(checked = stepHod)
+            TimelineStep(label = "HOD", checked = stepHod, current = status == "PENDING_HOD")
+            TimelineConnector(checked = stepSecurity)
+            TimelineStep(label = "Security", checked = stepSecurity, current = status == "PENDING_SECURITY")
+        }
     }
 }
 

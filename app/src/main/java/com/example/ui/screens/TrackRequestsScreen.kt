@@ -217,16 +217,18 @@ fun TrackRequestsScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
+                                val isExpiredItem = item.type == "Outpasses" && (item.status == "EXPIRED" || (item.status.startsWith("PENDING") && (System.currentTimeMillis() - item.timestamp) > 7200000L))
+                                val displayStat = if (isExpiredItem) "EXPIRED (2 hrs)" else if (item.status.startsWith("PENDING")) "PENDING" else item.status
+
                                 Badge(
-                                    containerColor = when (item.status) {
+                                    containerColor = when (displayStat) {
                                         "APPROVED", "READY", "COLLECTED", "COMPLETED" -> Color(0xFF10B981)
-                                        "REJECTED" -> Color.Red
+                                        "REJECTED", "EXPIRED (2 hrs)", "EXPIRED" -> Color.Red
                                         else -> MaterialTheme.colorScheme.primaryContainer
                                     }
                                 ) {
-                                    val readableStat = if (item.status.startsWith("PENDING")) "PENDING" else item.status
                                     Text(
-                                        text = readableStat,
+                                        text = displayStat,
                                         fontSize = 8.sp,
                                         color = Color.White
                                     )

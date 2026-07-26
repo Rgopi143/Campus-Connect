@@ -3812,6 +3812,7 @@ fun MessageChatPanel(
 private fun getDeptFromRollNumber(roll: String): String? {
     val clean = roll.uppercase().trim()
     return when {
+        clean.contains("AIML") || clean.contains("AIDS") || clean.contains("CSM") || clean.contains("CSD") || clean.contains("CSO") || clean.contains("CSC") || clean.contains("ET") || clean.contains("EMERGING") -> "Computer Science (Emerging Technologies)"
         clean.contains("CSE") || clean.contains("CS") -> "Computer Science"
         clean.contains("ECE") || clean.contains("EC") -> "Electronics & Communication"
         clean.contains("EEE") || clean.contains("EE") -> "Electrical & Electronics"

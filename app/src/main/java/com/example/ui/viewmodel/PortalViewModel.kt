@@ -29,6 +29,7 @@ class PortalViewModel(
     init {
         viewModelScope.launch {
             try {
+                autoExpireOutdatedRequests()
                 val loggedInUser = repository.getAllUsers().first().find { it.isLoggedIn }
                 if (loggedInUser != null && !loggedInUser.isPaused) {
                     _currentUser.value = loggedInUser
@@ -37,6 +38,24 @@ class PortalViewModel(
                 }
             } catch (e: Exception) {
                 android.util.Log.e("PortalViewModel", "Auto-login failed: ${e.message}")
+            }
+        }
+    }
+
+    fun autoExpireOutdatedRequests() {
+        viewModelScope.launch {
+            try {
+                val now = System.currentTimeMillis()
+                val twoHoursMs = 7200000L
+                val outpasses = repository.getAllOutpasses().first()
+                outpasses.forEach { req ->
+                    if (req.status.startsWith("PENDING") && (now - req.timestamp) > twoHoursMs) {
+                        val expiredReq = req.copy(status = "EXPIRED")
+                        repository.updateOutpassRequest(expiredReq)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PortalViewModel", "Error auto-expiring outpasses: ${e.message}")
             }
         }
     }
@@ -1047,6 +1066,19 @@ class PortalViewModel(
                     content = "Your application status for ${app.roleName} updated to: $newStatus. Check details.",
                     category = "General"
                 )
+            }
+        }
+    }
+
+    fun assignStudentDesignation(studentId: String, designation: String?) {
+        viewModelScope.launch {
+            val user = repository.getUser(studentId)
+            if (user != null) {
+                val updatedUser = user.copy(studentDesignation = designation)
+                repository.updateUser(updatedUser)
+                if (_currentUser.value?.userId == studentId) {
+                    _currentUser.value = updatedUser
+                }
             }
         }
     }
