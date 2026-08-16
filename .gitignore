@@ -16,3 +16,7 @@
 local.properties
 .env
 debug.keystore
+
+# Firebase / Google configuration files
+google-services.json
+**/google-services.json
