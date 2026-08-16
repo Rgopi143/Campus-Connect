@@ -532,25 +532,6 @@ fun CampusConnectApp(
                                 Text("Save")
                             }
                         } else {
-                            OutlinedButton(
-                                onClick = {
-                                    showProfileDialog = false
-                                    viewModel.logout()
-                                    Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
-                                },
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC62828)),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC62828).copy(alpha = 0.4f)),
-                                modifier = Modifier.testTag("profile_logout_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                    contentDescription = "Logout",
-                                    tint = Color(0xFFC62828),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Logout", color = Color(0xFFC62828), fontWeight = FontWeight.Bold)
-                            }
                             Button(
                                 onClick = { showProfileDialog = false },
                                 modifier = Modifier.testTag("finished_profile_button")
