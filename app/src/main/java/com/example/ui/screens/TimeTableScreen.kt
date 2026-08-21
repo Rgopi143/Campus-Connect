@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -230,7 +231,7 @@ fun TimeTableScreen(
                             }
                         }
 
-                        Divider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
 
                         // Access Permission Status Indicator Banner
                         if (isHod) {
@@ -632,7 +633,7 @@ fun TimeTableScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.FactCheck,
+                                    imageVector = Icons.AutoMirrored.Filled.FactCheck,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )

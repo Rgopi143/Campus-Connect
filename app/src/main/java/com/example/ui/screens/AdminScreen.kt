@@ -3175,7 +3175,7 @@ fun AdminScreen(
                                 }
                             }
                             LinearProgressIndicator(
-                                progress = attendancePercent / 100f,
+                                progress = { attendancePercent / 100f },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp),

@@ -506,7 +506,7 @@ class AppRepository(private val appDao: AppDao) {
     suspend fun <T> com.google.android.gms.tasks.Task<T>.awaitTask(): T = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
         addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                continuation.resume(task.result, null)
+                continuation.resume(task.result) { }
             } else {
                 continuation.resumeWithException(task.exception ?: RuntimeException("Task failed"))
             }

@@ -262,7 +262,7 @@ fun CampusConnectApp(
                                 ) {
                                     Icon(
                                         imageVector = when (notif.category) {
-                                            "Outpass" -> Icons.Default.DirectionsRun
+                                            "Outpass" -> Icons.AutoMirrored.Filled.DirectionsRun
                                             "Certificate" -> Icons.Default.CardMembership
                                             "Canteen" -> Icons.Default.Fastfood
                                             "Store" -> Icons.Default.Storefront

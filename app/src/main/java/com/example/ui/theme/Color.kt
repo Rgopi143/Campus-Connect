@@ -34,7 +34,7 @@ val PolishedDarkSecondary = Color(0xFFCCC2DC)
 val PolishedDarkOnSecondary = Color(0xFF332D41)
 val PolishedDarkSecondaryContainer = Color(0xFF4A4458)
 
-val PolishedDarkTertiary = Color(0xFFEFB8C8)
+// val PolishedDarkTertiary = Color(0xFFEFB8C8)
 
 val PolishedDarkBackground = Color(0xFF141218)
 val PolishedDarkOnBackground = Color(0xFFE6E1E5)
