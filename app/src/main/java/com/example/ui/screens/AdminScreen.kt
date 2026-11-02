@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -4048,6 +4049,17 @@ fun SecurityQrScannerDialog(
     var scannedCodeInput by remember { mutableStateOf("") }
     var matchedOutpass by remember { mutableStateOf<OutpassRequest?>(null) }
 
+    val infiniteTransition = rememberInfiniteTransition(label = "scanner_laser")
+    val laserY by infiniteTransition.animateFloat(
+        initialValue = 0.05f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "laser_y"
+    )
+
     LaunchedEffect(scannedCodeInput, outpasses) {
         val query = scannedCodeInput.trim()
         if (query.isNotEmpty()) {
@@ -4085,7 +4097,7 @@ fun SecurityQrScannerDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Live Camera Viewfinder Simulation
+                // Live Camera Viewfinder Simulation with Animated Laser Beam
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4094,6 +4106,16 @@ fun SecurityQrScannerDialog(
                         .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val currentY = size.height * laserY
+                        drawLine(
+                            color = Color(0xFF10B981),
+                            start = Offset(16f, currentY),
+                            end = Offset(size.width - 16f, currentY),
+                            strokeWidth = 6f
+                        )
+                    }
+
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)

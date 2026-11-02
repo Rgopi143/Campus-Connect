@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -195,6 +197,17 @@ fun OutpassScreen(
                             modifier = Modifier.padding(bottom = 12.dp)
                         )
 
+                        val qrPulseAnim = rememberInfiniteTransition(label = "qr_pulse")
+                        val qrScale by qrPulseAnim.animateFloat(
+                            initialValue = 0.97f,
+                            targetValue = 1.03f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1600, easing = FastOutSlowInEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "qr_scale"
+                        )
+
                         // Drawing a beautiful barcode/QR visual representative block
                         Column(
                             modifier = Modifier
@@ -217,6 +230,10 @@ fun OutpassScreen(
                                 qrText = req.qrText,
                                 modifier = Modifier
                                     .size(160.dp)
+                                    .graphicsLayer {
+                                        scaleX = qrScale
+                                        scaleY = qrScale
+                                    }
                                     .border(2.dp, Color.Black, RoundedCornerShape(4.dp))
                                     .padding(4.dp)
                             )

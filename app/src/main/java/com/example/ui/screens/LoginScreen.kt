@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -258,11 +260,25 @@ fun LoginScreen(
                                 }
                             }
 
+                            var isBtnPressed by remember { mutableStateOf(false) }
+                            val btnScale by animateFloatAsState(
+                                targetValue = if (isBtnPressed) 0.95f else 1f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                                label = "login_btn_scale"
+                            )
+
                             Button(
-                                onClick = { viewModel.login(userIdInput, passwordInput) },
+                                onClick = {
+                                    isBtnPressed = true
+                                    viewModel.login(userIdInput, passwordInput)
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp)
+                                    .height(52.dp)
+                                    .graphicsLayer {
+                                        scaleX = btnScale
+                                        scaleY = btnScale
+                                    }
                                     .testTag("login_button"),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
