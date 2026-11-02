@@ -486,17 +486,7 @@ fun CampusConnectApp(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "© 2026 RANBIDGE SOLUTIONS PVT LTD",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+
                     }
                 },
                 confirmButton = {

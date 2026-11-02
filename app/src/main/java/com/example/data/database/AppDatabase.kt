@@ -1,6 +1,7 @@
 package com.example.data.database
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -25,7 +26,7 @@ import kotlinx.coroutines.launch
         ChatMessage::class,
         CollegeEvent::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -46,29 +47,17 @@ abstract class AppDatabase : RoomDatabase() {
                     .addCallback(AppDatabaseCallback(scope))
                     .build()
                 INSTANCE = instance
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val dao = instance.appDao()
+                        if (dao.getUserById("student") == null) {
+                            populateDatabase(dao)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AppDatabase", "Error populating database: ${e.message}")
+                    }
+                }
                 instance
-            }
-        }
-    }
-
-    private class AppDatabaseCallback(
-        private val scope: CoroutineScope
-    ) : RoomDatabase.Callback() {
-        override fun onCreate(db: SupportSQLiteDatabase) {
-            super.onCreate(db)
-            INSTANCE?.let { database ->
-                scope.launch(Dispatchers.IO) {
-                    populateDatabase(database.appDao())
-                }
-            }
-        }
-
-        override fun onOpen(db: SupportSQLiteDatabase) {
-            super.onOpen(db)
-            INSTANCE?.let { database ->
-                scope.launch(Dispatchers.IO) {
-                    populateDatabase(database.appDao())
-                }
             }
         }
 
@@ -240,6 +229,30 @@ abstract class AppDatabase : RoomDatabase() {
                 CanteenItem(name = "Fresh Lime Soda", price = 20.0, category = "Beverages")
             )
             dao.insertCanteenItems(canteenList)
+        }
+    }
+
+    private class AppDatabaseCallback(
+        private val scope: CoroutineScope
+    ) : Callback() {
+        override fun onCreate(db: SupportSQLiteDatabase) {
+            super.onCreate(db)
+        }
+
+        override fun onOpen(db: SupportSQLiteDatabase) {
+            super.onOpen(db)
+            INSTANCE?.let { database ->
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        val dao = database.appDao()
+                        if (dao.getUserById("student") == null) {
+                            populateDatabase(dao)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AppDatabase", "Error populating database on open: ${e.message}")
+                    }
+                }
+            }
         }
     }
 }

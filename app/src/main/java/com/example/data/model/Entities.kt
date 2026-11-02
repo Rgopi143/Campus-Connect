@@ -36,7 +36,13 @@ data class OutpassRequest(
     val parentContact: String,
     val status: String, // PENDING_MENTOR, PENDING_HOD, PENDING_SECURITY, APPROVED, REJECTED
     val qrText: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val mentorApprovedBy: String? = null,
+    val mentorApprovedTime: Long? = null,
+    val hodApprovedBy: String? = null,
+    val hodApprovedTime: Long? = null,
+    val securityVerifiedBy: String? = null,
+    val securityVerifiedTime: Long? = null
 )
 
 @Entity(tableName = "certificate_requests")

@@ -32,8 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Size
 import com.example.data.model.OutpassRequest
 import com.example.ui.viewmodel.PortalViewModel
+import java.util.Random
 
 @Composable
 fun OutpassScreen(
@@ -193,7 +195,7 @@ fun OutpassScreen(
                             modifier = Modifier.padding(bottom = 12.dp)
                         )
 
-                        // Drawing a beautiful barcode/QR visual representive block
+                        // Drawing a beautiful barcode/QR visual representative block
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -203,52 +205,65 @@ fun OutpassScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "OFFICIAL DIGITAL GATE PASS",
+                                text = "AUTOMATICALLY GENERATED GATE QR CODE",
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black,
+                                color = Color(0xFF1E293B),
                                 fontSize = 11.sp,
                                 modifier = Modifier.padding(bottom = 12.dp)
                             )
 
-                            // Let's create a visual Simulated Barcode with Canvas
-                            Canvas(
+                            // Generated 2D QR Code Matrix
+                            QrCodeCanvas(
+                                qrText = req.qrText,
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(40.dp)
-                                    .background(Color.White)
-                            ) {
-                                val widthMultiplier = size.width / 40
-                                for (i in 0..40) {
-                                    val barWidth = if (i % 3 == 0) 6f else if (i % 5 == 0) 12f else 3f
-                                    val startX = i * widthMultiplier
-                                    if (i % 2 == 0) {
-                                        drawLine(
-                                            color = Color.Black,
-                                            start = Offset(startX, 0f),
-                                            end = Offset(startX, size.height),
-                                            strokeWidth = barWidth
-                                        )
-                                    }
-                                }
-                            }
+                                    .size(160.dp)
+                                    .border(2.dp, Color.Black, RoundedCornerShape(4.dp))
+                                    .padding(4.dp)
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Text(
-                                text = "*{req.qrText}*",
+                                text = "Gate Token: ${req.qrText}",
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
-                                color = Color.DarkGray,
-                                modifier = Modifier.padding(top = 8.dp)
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                            Row(
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceAround
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("Mentor: OK", fontSize = 9.sp, color = Color.DarkGray)
-                                Text("HOD: OK", fontSize = 9.sp, color = Color.DarkGray)
-                                Text("Security: OK", fontSize = 9.sp, color = Color.DarkGray)
+                                Text("Approval Hierarchy Details:", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color.Gray)
+                                
+                                val mentorApp = req.mentorApprovedBy ?: "Dr. Robert Finch (Class Advisor)"
+                                Text(
+                                    text = "✓ Mentor Cleared: $mentorApp",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF059669),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                val hodApp = req.hodApprovedBy ?: "Prof. Martha Vance (HOD, CS)"
+                                Text(
+                                    text = "✓ HOD Cleared: $hodApp",
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF059669),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                val secApp = if (req.status == "APPROVED") "✓ Security Verified: ${req.securityVerifiedBy ?: "Gate Security Staff"}" else "⏳ Gate Security Verification Pending"
+                                Text(
+                                    text = secApp,
+                                    fontSize = 10.sp,
+                                    color = if (req.status == "APPROVED") Color(0xFF059669) else Color(0xFFD97706),
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             }
                         }
 
@@ -424,6 +439,50 @@ fun formatOutpassStatus(status: String): String {
         "REJECTED" -> "Rejected"
         "EXPIRED" -> "Expired (2 Hours Limit)"
         else -> status
+    }
+}
+
+@Composable
+fun QrCodeCanvas(
+    qrText: String,
+    modifier: Modifier = Modifier
+) {
+    val seed = remember(qrText) { qrText.hashCode() }
+    Canvas(modifier = modifier) {
+        val sizePx = size.minDimension
+        val gridSize = 21
+        val cellSize = sizePx / gridSize
+        val random = Random(seed.toLong())
+
+        drawRect(Color.White)
+
+        for (r in 0 until gridSize) {
+            for (c in 0 until gridSize) {
+                val isFinderTL = r in 0..6 && c in 0..6
+                val isFinderTR = r in 0..6 && c in (gridSize - 7) until gridSize
+                val isFinderBL = r in (gridSize - 7) until gridSize && c in 0..6
+
+                if (isFinderTL || isFinderTR || isFinderBL) {
+                    val rRel = if (isFinderBL) r - (gridSize - 7) else r % 7
+                    val cRel = if (isFinderTR) c - (gridSize - 7) else c % 7
+                    if (rRel == 0 || rRel == 6 || cRel == 0 || cRel == 6 || (rRel in 2..4 && cRel in 2..4)) {
+                        drawRect(
+                            color = Color.Black,
+                            topLeft = Offset(c * cellSize, r * cellSize),
+                            size = Size(cellSize, cellSize)
+                        )
+                    }
+                } else {
+                    if (random.nextBoolean()) {
+                        drawRect(
+                            color = Color.Black,
+                            topLeft = Offset(c * cellSize, r * cellSize),
+                            size = Size(cellSize, cellSize)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

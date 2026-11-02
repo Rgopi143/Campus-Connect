@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.database.AppDatabase
 import com.example.data.model.*
 import com.example.data.repository.AppRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -49,8 +51,14 @@ class PortalViewModel(
     }
 
     private fun setupRealtimeListeners(user: User) {
-        setupRealtimeNotificationsListener(user)
-        setupRealtimeChatListener()
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                setupRealtimeNotificationsListener(user)
+                setupRealtimeChatListener()
+            } catch (e: Throwable) {
+                Log.e("FirebaseSync", "Listeners setup skipped: ${e.message}")
+            }
+        }
     }
 
     private fun setupRealtimeChatListener() {
@@ -166,8 +174,20 @@ class PortalViewModel(
         val user = _currentUser.value ?: return
         viewModelScope.launch { repository.createOutpass(user.userId, user.name, user.rollNumber, user.department, dateTime, reason, expectedReturnTime, user.parentContact) }
     }
-    fun actionOnOutpass(request: OutpassRequest, approve: Boolean, comment: String = "") {
-        viewModelScope.launch { if (approve) repository.approveOutpass(request, "ADMIN") else repository.rejectOutpass(request, "ADMIN", comment) }
+    fun actionOnOutpass(
+        request: OutpassRequest,
+        approve: Boolean,
+        comment: String = "",
+        approverRole: String? = null,
+        approverName: String? = null
+    ) {
+        val currentUser = _currentUser.value
+        val roleToUse = approverRole ?: currentUser?.role ?: "ADMIN"
+        val nameToUse = approverName ?: currentUser?.name ?: "Staff Member"
+        viewModelScope.launch {
+            if (approve) repository.approveOutpass(request, roleToUse, nameToUse)
+            else repository.rejectOutpass(request, roleToUse, comment)
+        }
     }
 
     fun submitCertificateRequest(certType: String, purpose: String) {
@@ -212,7 +232,10 @@ class PortalViewModel(
     fun markAllNotificationsRead() { _currentUser.value?.let { viewModelScope.launch { repository.markAllNotificationsAsRead(it.userId) } } }
     fun markNotificationRead(notifId: Int) { viewModelScope.launch { repository.markNotificationAsRead(notifId) } }
     fun broadcastNotification(title: String, content: String, target: String) { viewModelScope.launch { repository.createNotification(target, title, content, "General") } }
-    fun verifyExitSecurity(request: OutpassRequest) { viewModelScope.launch { repository.verifyOutpassExit(request) } }
+    fun verifyExitSecurity(request: OutpassRequest, securityName: String? = null) {
+        val nameToUse = securityName ?: _currentUser.value?.name ?: "Gate Security Staff"
+        viewModelScope.launch { repository.verifyOutpassExit(request, nameToUse) }
+    }
 
     fun sendChatMessage(messageText: String, senderName: String = "Admin", isStaff: Boolean = true, recipientRole: String = "", isSheet: Boolean = false, sheetData: String? = null) {
         val user = _currentUser.value ?: return

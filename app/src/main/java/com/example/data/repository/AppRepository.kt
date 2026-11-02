@@ -1,8 +1,12 @@
 package com.example.data.repository
 
+import android.util.Log
 import com.example.data.dao.AppDao
 import com.example.data.model.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import java.util.UUID
 import kotlin.coroutines.resumeWithException
 
@@ -19,16 +23,18 @@ class AppRepository(private val appDao: AppDao) {
     }
 
     private fun <T : Any> syncToFirestore(collectionName: String, documentId: String, data: T) {
-        try {
-            firestoreInstance?.collection(collectionName)?.document(documentId)?.set(data)
-                ?.addOnSuccessListener {
-                    android.util.Log.d("FirebaseSync", "Synced $documentId to collection $collectionName successfully!")
-                }
-                ?.addOnFailureListener { e ->
-                    android.util.Log.e("FirebaseSync", "Failed to sync $documentId to collection $collectionName: ${e.message}")
-                }
-        } catch (e: Exception) {
-            android.util.Log.e("FirebaseSync", "Firestore sync exception: ${e.message}")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                firestoreInstance?.collection(collectionName)?.document(documentId)?.set(data)
+                    ?.addOnSuccessListener {
+                        Log.d("FirebaseSync", "Synced $documentId to collection $collectionName successfully!")
+                    }
+                    ?.addOnFailureListener { e ->
+                        Log.e("FirebaseSync", "Failed to sync $documentId to collection $collectionName: ${e.message}")
+                    }
+            } catch (e: Throwable) {
+                Log.e("FirebaseSync", "Firestore sync exception: ${e.message}")
+            }
         }
     }
 
@@ -133,15 +139,40 @@ class AppRepository(private val appDao: AppDao) {
         syncToFirestore("outpasses", "${request.studentId}_${request.timestamp}", request)
     }
 
-    suspend fun approveOutpass(request: OutpassRequest, approverRole: String) {
+    suspend fun approveOutpass(request: OutpassRequest, approverRole: String, approverName: String = "Staff Member") {
+        val now = System.currentTimeMillis()
         val nextStatus = when (approverRole) {
             "CLASS_ADVISOR", "MENTOR" -> "PENDING_HOD"
             "HOD" -> "PENDING_SECURITY"
             "SECURITY" -> "APPROVED"
             "WARDEN", "ADMIN" -> "APPROVED"
-            else -> request.status
+            else -> if (request.status == "PENDING_MENTOR" || request.status == "PENDING_ADVISOR") "PENDING_HOD" else "PENDING_SECURITY"
         }
-        val updatedRequest = request.copy(status = nextStatus)
+
+        val updatedRequest = when (approverRole) {
+            "CLASS_ADVISOR", "MENTOR" -> request.copy(
+                status = nextStatus,
+                mentorApprovedBy = approverName,
+                mentorApprovedTime = now
+            )
+            "HOD" -> request.copy(
+                status = nextStatus,
+                hodApprovedBy = approverName,
+                hodApprovedTime = now
+            )
+            "SECURITY" -> request.copy(
+                status = nextStatus,
+                securityVerifiedBy = approverName,
+                securityVerifiedTime = now
+            )
+            else -> request.copy(
+                status = nextStatus,
+                mentorApprovedBy = request.mentorApprovedBy ?: approverName,
+                mentorApprovedTime = request.mentorApprovedTime ?: now,
+                hodApprovedBy = request.hodApprovedBy ?: approverName,
+                hodApprovedTime = request.hodApprovedTime ?: now
+            )
+        }
         appDao.updateOutpassRequest(updatedRequest)
         syncToFirestore("outpasses", "${updatedRequest.studentId}_${updatedRequest.timestamp}", updatedRequest)
 
@@ -483,11 +514,16 @@ class AppRepository(private val appDao: AppDao) {
     suspend fun markNotificationAsRead(id: Int) = appDao.markAsRead(id)
 
     // --- SECURITY DOOR HISTORY & CHAT INTEGRATION ---
-    suspend fun verifyOutpassExit(request: OutpassRequest) {
-        val updatedRequest = request.copy(status = "APPROVED")
+    suspend fun verifyOutpassExit(request: OutpassRequest, securityName: String = "Gate Security Staff") {
+        val now = System.currentTimeMillis()
+        val updatedRequest = request.copy(
+            status = "APPROVED",
+            securityVerifiedBy = securityName,
+            securityVerifiedTime = now
+        )
         appDao.updateOutpassRequest(updatedRequest)
         syncToFirestore("outpasses", "${updatedRequest.studentId}_${updatedRequest.timestamp}", updatedRequest)
-        createNotification(request.studentId, "Outpass Exit Verified", "Your exit gate-pass has been successfully verified by security.", "Outpass")
+        createNotification(request.studentId, "Outpass Exit Verified", "Your exit gate-pass has been successfully verified by $securityName.", "Outpass")
     }
 
     fun getAllChatMessages(): Flow<List<ChatMessage>> = appDao.getAllChatMessages()
@@ -553,7 +589,13 @@ class AppRepository(private val appDao: AppDao) {
             parentContact = doc.getString("parentContact") ?: "",
             status = doc.getString("status") ?: "",
             qrText = doc.getString("qrText") ?: "",
-            timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+            timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis(),
+            mentorApprovedBy = doc.getString("mentorApprovedBy"),
+            mentorApprovedTime = doc.getLong("mentorApprovedTime"),
+            hodApprovedBy = doc.getString("hodApprovedBy"),
+            hodApprovedTime = doc.getLong("hodApprovedTime"),
+            securityVerifiedBy = doc.getString("securityVerifiedBy"),
+            securityVerifiedTime = doc.getLong("securityVerifiedTime")
         )
     }
 

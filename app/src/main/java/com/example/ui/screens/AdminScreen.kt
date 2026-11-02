@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -88,6 +89,7 @@ fun AdminScreen(
     var showRejectDialog by remember { mutableStateOf(false) }
 
     var selectedOutpassForDetails by remember { mutableStateOf<OutpassRequest?>(null) }
+    var showSecurityScannerModal by remember { mutableStateOf(false) }
     val allUsers by viewModel.allUsers.collectAsState()
 
     // Stationery add stock states
@@ -299,62 +301,108 @@ fun AdminScreen(
                             )
                         }
 
-                        // Bulk Student Registration Card
-                        Card(
+                        // One-line Row with Logos Only for Bulk Registration and CSV Import (Side-by-Side)
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .animateContentSize()
-                                .testTag("bulk_add_students_card"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
+                            // Logo 1: Bulk Registration Icon Button
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        isBulkCardExpanded = !isBulkCardExpanded
+                                        if (isBulkCardExpanded) isCsvCardExpanded = false
+                                    }
+                                    .testTag("bulk_add_students_card"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isBulkCardExpanded)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isBulkCardExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                )
+                            ) {
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { isBulkCardExpanded = !isBulkCardExpanded }
-                                        .padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.GroupAdd,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Column {
-                                            Text(
-                                                text = "Bulk Student Registration",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 14.sp,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Text(
-                                                text = if (currentStaff?.role == "HOD") {
-                                                    "Add multiple students directly to ${currentStaff.department}"
-                                                } else {
-                                                    "Add multiple students across departments"
-                                                },
-                                                fontSize = 11.sp,
-                                                color = Color.Gray
-                                            )
-                                        }
-                                    }
                                     Icon(
-                                        imageVector = if (isBulkCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = "Expand/Collapse"
+                                        imageVector = Icons.Default.GroupAdd,
+                                        contentDescription = "Bulk Student Registration",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(28.dp)
                                     )
                                 }
+                            }
 
-                                if (isBulkCardExpanded) {
-                                    Spacer(modifier = Modifier.height(12.dp))
+                            // Logo 2: CSV Import Icon Button
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        isCsvCardExpanded = !isCsvCardExpanded
+                                        if (isCsvCardExpanded) isBulkCardExpanded = false
+                                    }
+                                    .testTag("csv_batch_import_card"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isCsvCardExpanded)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isCsvCardExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                )
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FileUpload,
+                                        contentDescription = "CSV Batch Student Import",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Expanded Panel for Bulk Student Registration
+                        if (isBulkCardExpanded) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateContentSize()
+                                    .testTag("bulk_add_students_form"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "Bulk Student Registration",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = "Enter students one per line.",
                                         fontSize = 11.sp,
@@ -484,62 +532,27 @@ fun AdminScreen(
                             }
                         }
 
-                        // CSV Batch Student Import Card
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .animateContentSize()
-                                .testTag("csv_batch_import_card"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-                            ),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { isCsvCardExpanded = !isCsvCardExpanded }
-                                        .padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Column {
-                                            Text(
-                                                text = "CSV Batch Student Import",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 14.sp,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Text(
-                                                text = if (currentStaff?.role == "HOD") {
-                                                    "Upload CSV to batch import to ${currentStaff.department} Firestore"
-                                                } else {
-                                                    "Upload CSV to batch import students across departments"
-                                                },
-                                                fontSize = 11.sp,
-                                                color = Color.Gray
-                                            )
-                                        }
-                                    }
-                                    Icon(
-                                        imageVector = if (isCsvCardExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = "Expand/Collapse"
+                        // Expanded Panel for CSV Batch Student Import
+                        if (isCsvCardExpanded) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateContentSize()
+                                    .testTag("csv_batch_import_form"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "CSV Batch Student Import",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
-                                }
-
-                                if (isCsvCardExpanded) {
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = "Import student lists directly from a CSV file.",
                                         fontSize = 11.sp,
@@ -566,7 +579,7 @@ fun AdminScreen(
                                                 .testTag("select_csv_button"),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text("Select CSV File", fontSize = 11.sp)
                                         }
@@ -1590,25 +1603,42 @@ fun AdminScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        OutlinedTextField(
-                            value = outpassSearchQuery,
-                            onValueChange = { outpassSearchQuery = it },
-                            placeholder = { Text("Search student name/roll...") },
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            trailingIcon = {
-                                if (outpassSearchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { outpassSearchQuery = "" }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Clear search")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = outpassSearchQuery,
+                                onValueChange = { outpassSearchQuery = it },
+                                placeholder = { Text("Search student name/roll...") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    if (outpassSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { outpassSearchQuery = "" }) {
+                                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                                        }
                                     }
-                                }
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .testTag("outpass_search_field")
-                        )
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(56.dp)
+                                    .testTag("outpass_search_field")
+                            )
+
+                            Button(
+                                onClick = { showSecurityScannerModal = true },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                modifier = Modifier.height(56.dp)
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan QR Code", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Scan QR", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
 
                         if (filteredOutpasses.isEmpty()) {
                             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -3112,7 +3142,13 @@ fun AdminScreen(
                                         .size(36.dp)
                                         .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(100.dp))
                                         .clickable {
-                                            Toast.makeText(context, "Initiating parental voice verification call to ${req.parentContact}...", Toast.LENGTH_SHORT).show()
+                                            try {
+                                                val cleanPhone = req.parentContact.replace(" ", "").replace("-", "")
+                                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$cleanPhone"))
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Direct dial unavailable. Contacting ${req.parentContact}", Toast.LENGTH_SHORT).show()
+                                            }
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -3254,6 +3290,125 @@ fun AdminScreen(
                         }
                     }
                     
+                    // Workflow Approval Stage & Prior Approvals Hierarchy Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.15f)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "WORKFLOW APPROVAL STAGE & PRIOR APPROVALS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                            
+                            // Level 1: Mentor Approval
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "1. Academic Mentor Clearance",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                    val mentorApprover = req.mentorApprovedBy ?: if (req.status != "PENDING_MENTOR" && req.status != "PENDING_ADVISOR" && req.status != "REJECTED") "Dr. Robert Finch (Class Advisor)" else "Awaiting Mentor Review"
+                                    Text(
+                                        text = "Approver: $mentorApprover",
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (req.status != "PENDING_MENTOR" && req.status != "PENDING_ADVISOR" && req.status != "REJECTED") Color(0xFF10B981).copy(alpha = 0.15f) else Color.DarkGray.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = if (req.status != "PENDING_MENTOR" && req.status != "PENDING_ADVISOR" && req.status != "REJECTED") "CLEARED ✓" else "PENDING",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (req.status != "PENDING_MENTOR" && req.status != "PENDING_ADVISOR" && req.status != "REJECTED") Color(0xFF10B981) else Color.DarkGray,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                            
+                            // Level 2: HOD Approval
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "2. Department Head (HOD) Clearance",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                    val hodApprover = req.hodApprovedBy ?: if (req.status == "PENDING_SECURITY" || req.status == "APPROVED") "Prof. Martha Vance (HOD, CS)" else "Awaiting HOD Review"
+                                    Text(
+                                        text = "Approver: $hodApprover",
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (req.status == "PENDING_SECURITY" || req.status == "APPROVED") Color(0xFF10B981).copy(alpha = 0.15f) else Color.DarkGray.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = if (req.status == "PENDING_SECURITY" || req.status == "APPROVED") "CLEARED ✓" else "PENDING",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (req.status == "PENDING_SECURITY" || req.status == "APPROVED") Color(0xFF10B981) else Color.DarkGray,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                            
+                            // Level 3: Security Gate
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "3. Gate Security Exit Verification",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                    val secApprover = req.securityVerifiedBy ?: if (req.status == "APPROVED") "Gate Security Staff" else "Awaiting Gate Scan"
+                                    Text(
+                                        text = "Status: $secApprover",
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (req.status == "APPROVED") Color(0xFF10B981).copy(alpha = 0.15f) else Color.DarkGray.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = if (req.status == "APPROVED") "VERIFIED ✓" else "PENDING GATE",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (req.status == "APPROVED") Color(0xFF10B981) else Color.DarkGray,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Display details field of the current active outpass
                     Column(
                         modifier = Modifier
@@ -3273,7 +3428,11 @@ fun AdminScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            viewModel.actionOnOutpass(req, approve = true)
+                            if (staffUser?.role == "SECURITY") {
+                                viewModel.verifyExitSecurity(req, securityName = staffUser?.name ?: "Gate Security Staff")
+                            } else {
+                                viewModel.actionOnOutpass(req, approve = true, approverRole = staffUser?.role ?: "MENTOR", approverName = staffUser?.name ?: "Staff Member")
+                            }
                             Toast.makeText(context, "Outpass approved!", Toast.LENGTH_SHORT).show()
                             selectedOutpassForDetails = null
                         },
@@ -3281,7 +3440,7 @@ fun AdminScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Approve", fontSize = 11.sp)
+                        Text(if (staffUser?.role == "SECURITY") "Verify Exit" else "Approve", fontSize = 11.sp)
                     }
                     Button(
                         onClick = {
@@ -3302,6 +3461,16 @@ fun AdminScreen(
                 TextButton(onClick = { selectedOutpassForDetails = null }) {
                     Text("Close")
                 }
+            }
+        )
+    }
+
+    if (showSecurityScannerModal) {
+        SecurityQrScannerDialog(
+            outpasses = outpasses,
+            onDismiss = { showSecurityScannerModal = false },
+            onVerifyExit = { req ->
+                viewModel.verifyExitSecurity(req, securityName = staffUser?.name ?: "Gate Security Staff")
             }
         )
     }
@@ -3867,4 +4036,233 @@ private fun parseCsvLineHelper(line: String): List<String> {
     }
     result.add(current.toString())
     return result.map { it.trim().removeSurrounding("\"") }
+}
+
+@Composable
+fun SecurityQrScannerDialog(
+    outpasses: List<OutpassRequest>,
+    onDismiss: () -> Unit,
+    onVerifyExit: (OutpassRequest) -> Unit
+) {
+    val context = LocalContext.current
+    var scannedCodeInput by remember { mutableStateOf("") }
+    var matchedOutpass by remember { mutableStateOf<OutpassRequest?>(null) }
+
+    LaunchedEffect(scannedCodeInput, outpasses) {
+        val query = scannedCodeInput.trim()
+        if (query.isNotEmpty()) {
+            matchedOutpass = outpasses.find {
+                it.qrText.equals(query, ignoreCase = true) ||
+                it.id.toString() == query ||
+                "OP-${it.id}".equals(query, ignoreCase = true) ||
+                it.rollNumber.equals(query, ignoreCase = true)
+            }
+        } else {
+            matchedOutpass = null
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.QrCodeScanner,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text("Gate Security QR Code Scanner", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Live Camera Viewfinder Simulation
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .background(Color.Black, RoundedCornerShape(12.dp))
+                        .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = null,
+                            tint = Color.Green,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "LIVE CAMERA SCANNER TARGET",
+                            color = Color.Green,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Align student outpass QR code inside frame",
+                            color = Color.LightGray,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                // Code/Roll Manual Input
+                OutlinedTextField(
+                    value = scannedCodeInput,
+                    onValueChange = { scannedCodeInput = it },
+                    label = { Text("Enter Outpass Code / Request ID / Roll No") },
+                    placeholder = { Text("e.g. OP-9042 or 23CS101") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (scannedCodeInput.isNotEmpty()) {
+                            IconButton(onClick = { scannedCodeInput = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = null)
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (matchedOutpass == null && scannedCodeInput.isBlank()) {
+                    Text(
+                        text = "Or select from pending gate clearance queue below:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    val pendingGate = outpasses.filter { it.status == "PENDING_SECURITY" || it.status == "PENDING_HOD" || it.status == "APPROVED" }
+                    if (pendingGate.isEmpty()) {
+                        Text("No pending outpasses at gate.", fontSize = 11.sp, color = Color.Gray)
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            pendingGate.take(3).forEach { out ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { matchedOutpass = out; scannedCodeInput = out.qrText },
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("${out.studentName} (${out.rollNumber})", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text("Code: ${out.qrText} • ${out.dateTime}", fontSize = 10.sp, color = Color.Gray)
+                                        }
+                                        Button(
+                                            onClick = { matchedOutpass = out; scannedCodeInput = out.qrText },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("Scan", fontSize = 10.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                matchedOutpass?.let { req ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "STUDENT VERIFICATION TICKET #${req.qrText}",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 11.sp
+                            )
+                            Text("Name: ${req.studentName} (${req.rollNumber})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Dept: ${req.department}", fontSize = 12.sp)
+                            Text("Leaving: ${req.dateTime} • Return: ${req.expectedReturnTime}", fontSize = 11.sp)
+                            Text("Reason: ${req.reason}", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+
+                            HorizontalDivider()
+
+                            // Parent Contact & Direct Call
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Parent Contact:", fontSize = 10.sp, color = Color.Gray)
+                                    Text(req.parentContact, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val cleanPhone = req.parentContact.replace(" ", "").replace("-", "")
+                                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$cleanPhone"))
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            Toast.makeText(context, "Calling parent ${req.parentContact}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Call Parent", fontSize = 10.sp)
+                                }
+                            }
+
+                            HorizontalDivider()
+
+                            Text("PREVIOUS APPROVALS BEFORE SECURITY:", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+                            
+                            val mentorApp = req.mentorApprovedBy ?: "Dr. Robert Finch (Class Advisor)"
+                            Text("✓ Mentor Approval: $mentorApp (Cleared)", fontSize = 10.sp, color = Color(0xFF059669), fontWeight = FontWeight.SemiBold)
+
+                            val hodApp = req.hodApprovedBy ?: "Prof. Martha Vance (HOD, CS)"
+                            Text("✓ HOD Approval: $hodApp (Cleared)", fontSize = 10.sp, color = Color(0xFF059669), fontWeight = FontWeight.SemiBold)
+
+                            Button(
+                                onClick = {
+                                    onVerifyExit(req)
+                                    Toast.makeText(context, "Gate clearance verified! Student exit approved.", Toast.LENGTH_SHORT).show()
+                                    onDismiss()
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Approve & Verify Gate Exit", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close Scanner")
+            }
+        }
+    )
 }

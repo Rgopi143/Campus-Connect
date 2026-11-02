@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,18 +18,23 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -44,6 +50,9 @@ fun LoginScreen(
     modifier: Modifier = Modifier
 ) {
     val allUsers by viewModel.allUsers.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     var userIdInput by remember { mutableStateOf("") }
     var passwordInput by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -149,6 +158,13 @@ fun LoginScreen(
                                 label = { Text("Email, Student Roll or Staff ID") },
                                 placeholder = { Text("e.g. user@nrtec.in or 23CS101") },
                                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Email,
+                                    imeAction = ImeAction.Next
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("username_input"),
@@ -170,7 +186,16 @@ fun LoginScreen(
                                     }
                                 },
                                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Password,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onDone = {
+                                        keyboardController?.hide()
+                                        viewModel.login(userIdInput, passwordInput)
+                                    }
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("password_input"),
@@ -188,7 +213,50 @@ fun LoginScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "⚡ Quick Demo Auto-Fill Roles",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+
+                            val demoAccountChips = remember {
+                                listOf(
+                                    Triple("Student", "👨‍🎓", "student@nrtec.in"),
+                                    Triple("Advisor", "👨‍🏫", "advisor@technoelite.com"),
+                                    Triple("Mentor", "👨‍🏫", "mentor@technoelite.com"),
+                                    Triple("HOD (CS)", "🏛️", "hod@hod.com"),
+                                    Triple("Principal", "👔", "principal@principal.com"),
+                                    Triple("Warden", "🏠", "suresh.kumar@college.edu"),
+                                    Triple("PA Desk", "📋", "pa@pa.com"),
+                                    Triple("Canteen", "🍔", "canteen@neccanteen.com"),
+                                    Triple("Store Clerk", "📦", "store@necstationary.in"),
+                                    Triple("Security", "🛡️", "security@necsecurity.in"),
+                                    Triple("Admin", "⚙️", "admin@ranbidge.com")
+                                )
+                            }
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            ) {
+                                items(demoAccountChips) { (role, icon, email) ->
+                                    FilterChip(
+                                        selected = userIdInput.equals(email, ignoreCase = true),
+                                        onClick = {
+                                            userIdInput = email
+                                            passwordInput = "pass"
+                                        },
+                                        label = { Text("$icon $role", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                }
+                            }
 
                             Button(
                                 onClick = { viewModel.login(userIdInput, passwordInput) },
@@ -461,24 +529,115 @@ fun LoginScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "© 2026 RANBIDGE SOLUTIONS PVT LTD",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    letterSpacing = 1.sp,
-                    textAlign = TextAlign.Center,
+                // Demo Accounts Credentials List Card
+                var showDemoList by remember { mutableStateOf(false) }
+
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = "All Rights Reserved. Campus Connect Portal",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
-                )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDemoList = !showDemoList },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("🔑", fontSize = 18.sp)
+                                Text(
+                                    text = "Demo Accounts Credentials List",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            IconButton(onClick = { showDemoList = !showDemoList }) {
+                                Icon(
+                                    imageVector = if (showDemoList) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                    contentDescription = "Toggle demo list"
+                                )
+                            }
+                        }
+
+                        if (showDemoList) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            listOf(
+                                Triple("Student Account", "student@nrtec.in", "pass"),
+                                Triple("Class Advisor", "advisor@technoelite.com", "pass"),
+                                Triple("Academic Mentor", "mentor@technoelite.com", "pass"),
+                                Triple("Department HOD", "hod@hod.com", "pass"),
+                                Triple("College Principal", "principal@principal.com", "pass"),
+                                Triple("Hostel Warden", "suresh.kumar@college.edu", "pass"),
+                                Triple("Principal Assistant (PA)", "pa@pa.com", "pass"),
+                                Triple("Canteen Manager", "canteen@neccanteen.com", "pass"),
+                                Triple("Store Clerk", "store@necstationary.in", "pass"),
+                                Triple("Gate Security", "security@necsecurity.in", "pass"),
+                                Triple("System Administrator", "admin@ranbidge.com", "pass")
+                            ).forEach { (roleTitle, emailVal, passVal) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .clickable {
+                                            userIdInput = emailVal
+                                            passwordInput = passVal
+                                            isRegisterMode = false
+                                        }
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = roleTitle,
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = "Email: $emailVal",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "Password: $passVal",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            userIdInput = emailVal
+                                            passwordInput = passVal
+                                            isRegisterMode = false
+                                        }
+                                    ) {
+                                        Text("Tap to fill", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
             }
             Spacer(modifier = Modifier.height(40.dp))
         }
